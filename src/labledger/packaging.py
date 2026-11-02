@@ -8,6 +8,8 @@ from pathlib import Path
 
 from . import __version__
 
+REPOSITORY = "https://github.com/anhnh2002/LabLedger"
+
 DESCRIPTIONS = {
     "init": "Initialize LabLedger research conventions and an agreed charter in a repository.",
     "brainstorm": "Discuss a research decision and hand off the agreed direction to a fresh planning session.",
@@ -87,6 +89,9 @@ def build_plugins(destination, hooks=False):
             "name": "labledger",
             "version": __version__,
             "description": "Discuss research decisions, retain evidence, and continue across coding-agent sessions.",
+            "author": {"name": "LabLedger contributors"},
+            "homepage": REPOSITORY,
+            "repository": REPOSITORY,
         }
         if host == "codex":
             manifest = {
@@ -157,3 +162,61 @@ def build_plugins(destination, hooks=False):
             {"host": host, "directory": str(root), "archive": str(archive), "hooks": hooks}
         )
     return outputs
+
+
+def build_marketplace(destination, archive_destination):
+    """Stage a self-contained Git marketplace for both hosts, with separate ZIPs."""
+    destination = Path(destination).resolve()
+    outputs = build_plugins(archive_destination)
+    for result in outputs:
+        source = Path(result["directory"])
+        target = destination / "plugins" / source.name
+        if target.exists():
+            shutil.rmtree(target)
+        shutil.copytree(source, target)
+
+    common = {
+        "name": "labledger",
+        "owner": {"name": "LabLedger contributors"},
+        "description": "LabLedger research workflows for Codex and Claude Code.",
+    }
+    entry = {
+        "name": "labledger",
+        "version": __version__,
+        "description": "Durable research workflows and experiment records for coding agents.",
+    }
+    catalogs = {
+        ".agents/plugins/marketplace.json": {
+            **common,
+            "interface": {"displayName": "LabLedger"},
+            "plugins": [
+                {
+                    **entry,
+                    "source": {"source": "local", "path": "./plugins/labledger-codex"},
+                    "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+                    "category": "Productivity",
+                }
+            ],
+        },
+        ".claude-plugin/marketplace.json": {
+            **common,
+            "plugins": [{**entry, "source": "./plugins/labledger-claude"}],
+        },
+    }
+    for relative, catalog in catalogs.items():
+        path = destination / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(catalog, indent=2) + "\n")
+    (destination / "README.md").write_text(
+        f"# LabLedger {__version__} plugin marketplace\n\n"
+        "Generated release packages for Codex and Claude Code.\n"
+        "\nInstall in Claude Code:\n\n"
+        "```text\n/plugin marketplace add anhnh2002/LabLedger#marketplace\n"
+        "/plugin install labledger@labledger\n```\n\n"
+        "Install in Codex:\n\n"
+        "```sh\ncodex plugin marketplace add anhnh2002/LabLedger --ref marketplace\n"
+        "codex plugin add labledger@labledger\n```\n\n"
+        f"See {REPOSITORY} for installation instructions and source.\n"
+        "Contribute on the source branch; this branch is updated by the release workflow.\n"
+    )
+    return {"directory": str(destination), "catalogs": list(catalogs), "plugins": outputs}

@@ -1,0 +1,125 @@
+name: release plugins
+
+on:
+  push:
+    tags: ['v[0-9]*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing stable version tag to publish (for example v0.1.0)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-plugins
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.11'
+      - run: uv sync --locked
+      - name: Verify stable release tag and package versions
+        id: version
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          uv run python - <<'PY'
+          import os
+          import re
+          import subprocess
+          import tomllib
+          from pathlib import Path
+          from labledger import __version__
+
+          tag = os.environ['RELEASE_TAG']
+          if not re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+', tag):
+              raise SystemExit('Publish a stable vMAJOR.MINOR.PATCH tag')
+          project = tomllib.loads(Path('pyproject.toml').read_text())
+          if tag != f'v{__version__}' or project['project']['version'] != __version__:
+              raise SystemExit('Tag, pyproject.toml, and backend versions must agree')
+          tagged = subprocess.check_output(
+              ['git', 'rev-parse', '--verify', f'refs/tags/{tag}^{{commit}}'], text=True
+          ).strip()
+          head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          if tagged != head:
+              raise SystemExit('The checked-out commit must match the release tag')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'tag={tag}\n')
+          PY
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run pytest
+      - run: uv build
+      - run: uv run python scripts/build_marketplace.py
+      - run: uv run python scripts/smoke_release.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: marketplace
+          path: dist/marketplace/
+          include-hidden-files: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plugin-archives
+          path: |
+            dist/plugins/*.zip
+            dist/plugins/SHA256SUMS
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: marketplace
+          path: dist/marketplace
+      - uses: actions/download-artifact@v4
+        with:
+          name: plugin-archives
+          path: dist/plugins
+      - name: Publish generated marketplace branch
+        env:
+          RELEASE_TAG: ${{ needs.build.outputs.tag }}
+        run: |
+          publish_dir="$RUNNER_TEMP/labledger-marketplace"
+          if git ls-remote --exit-code --heads origin marketplace; then
+            git fetch origin marketplace
+            git worktree add --detach "$publish_dir" FETCH_HEAD
+          else
+            git worktree add --detach "$publish_dir" HEAD
+            git -C "$publish_dir" checkout --orphan marketplace
+          fi
+          git -C "$publish_dir" rm -rf .
+          cp -R dist/marketplace/. "$publish_dir/"
+          git -C "$publish_dir" config user.name 'github-actions[bot]'
+          git -C "$publish_dir" config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C "$publish_dir" add -A
+          if ! git -C "$publish_dir" diff --cached --quiet; then
+            git -C "$publish_dir" commit -m "Release LabLedger $RELEASE_TAG plugins"
+            git -C "$publish_dir" push origin HEAD:refs/heads/marketplace
+          fi
+      - name: Publish downloadable plugin archives
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.build.outputs.tag }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" dist/plugins/*.zip dist/plugins/SHA256SUMS --clobber
+          else
+            gh release create "$RELEASE_TAG" dist/plugins/*.zip dist/plugins/SHA256SUMS --verify-tag --generate-notes --title "LabLedger $RELEASE_TAG"
+          fi

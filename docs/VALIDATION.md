@@ -98,3 +98,24 @@ plugin behavior. The results below distinguish backend checks from interactive h
   manifests passed host validation with the existing missing-author metadata warning.
 - Interactive Codex/Claude conversations, actual mode transitions, host-to-host
   session handoff, desktop event delivery, and Linux CI remain unobserved here.
+
+## Remote distribution preparation — 2026-11-02
+
+- 71 automated tests passed on Darwin arm64, Python 3.12.12, including marketplace
+  relocation, bundled runtime paths, stale plugin file removal, hook exclusion, and
+  version agreement. Ruff checks and source/wheel builds passed.
+- All four ZIPs passed the relocated backend lifecycle and cross-package resume
+  smoke checks. The default ZIPs matched the generated `SHA256SUMS` file.
+- Codex CLI 0.166.0 installed and enabled `labledger@labledger` from the generated
+  local marketplace in a temporary `CODEX_HOME`. A synthetic version bump confirmed
+  that reinstalling refreshes the versioned cache.
+- Claude Code 2.1.296 validated and installed the local marketplace in a temporary
+  `CLAUDE_CONFIG_DIR`. Its component inventory listed ten skills and zero hooks.
+  The existing personal host configurations were not changed.
+- The release workflow's branch publishing shell step passed against a temporary
+  local Git remote: first branch creation, an unchanged rerun, and an update that
+  preserved branch history. A clone retained both hidden marketplace catalogs.
+- GitHub publication, Actions permissions, installation from the published GitHub
+  branch, and interactive research conversations remain unobserved. The first
+  stable release must create `marketplace` before the documented remote commands
+  can succeed. See [RELEASING.md](RELEASING.md).

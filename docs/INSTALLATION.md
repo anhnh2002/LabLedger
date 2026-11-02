@@ -1,69 +1,159 @@
-# Install the host plugin
+# Install LabLedger
 
-Install LabLedger as a plugin in Codex or Claude Code. Both packages include the
-backend and resources. Do not install a separate LabLedger wheel, pipx tool, or
-executable. All research workflows run inside a coding-agent session.
+Install LabLedger from its GitHub marketplace in Codex or Claude Code. Each plugin
+includes its Python backend, schemas, workflows, and private helpers. Users do not
+need to clone the source, install `uv`, or build a package.
 
-Python 3.11+ on macOS/Linux must be available to the host's command tool. The first
-skill invocation prepares pinned dependencies in an isolated user cache, requiring
-package-index access. The agent handles this inside the session; no research-project
-dependencies or global LabLedger installation are changed. Subsequent requests use
-the cached environment. If setup fails, the agent diagnoses the failure in-session.
+## Requirements
 
-## Build from this repository
+- A Codex or Claude Code version with marketplace plugin support.
+- macOS or Linux, with Python 3.11+ available to the host's command tool.
+- Git and GitHub access for the host to fetch the marketplace.
+- Package-index access on the first skill invocation to prepare pinned dependencies.
 
-For local development, run `uv sync`, then `uv run python scripts/build_plugins.py`.
-The generated directories and zip archives are under `dist/plugins/`. They can be
-moved or extracted elsewhere; resources resolve relative to the plugin root.
-Builds bundle the current core, so no separate version matching is required.
+The agent prepares an isolated runtime in your user cache on first use. Subsequent
+requests reuse it. Research-project dependencies and global Python packages are
+unchanged. No separate LabLedger executable, server, or API key is required.
+
+## Codex
+
+Run in your terminal:
+
+```sh
+codex plugin marketplace add anhnh2002/LabLedger --ref marketplace
+codex plugin add labledger@labledger
+```
+
+Start a fresh session in your research repository and invoke `$labledger-init`.
+Discuss your goals with the agent; it prepares the requests and initializes the
+ledger. Verify all ten skills are discoverable. Some surfaces display skills with
+the plugin namespace.
+
+If your version supports adding marketplaces but has no `codex plugin add`, open
+the desktop app's Plugins Directory, select **LabLedger**, and install the plugin.
+See [OpenAI's marketplace documentation](https://developers.openai.com/plugins/build/plugins)
+for supported surfaces and installation controls.
+
+To fetch a newer release and refresh the installed package:
+
+```sh
+codex plugin marketplace upgrade labledger
+codex plugin add labledger@labledger
+```
+
+Restart the host or start a new session to load updated skills.
 
 ## Claude Code
 
-Load `dist/plugins/labledger-claude` through Claude Code's plugin installation
-controls. For local development, the host supports:
+Run inside a Claude Code session:
+
+```text
+/plugin marketplace add anhnh2002/LabLedger#marketplace
+/plugin install labledger@labledger
+```
+
+You can also install from your terminal:
+
+```sh
+claude plugin marketplace add 'anhnh2002/LabLedger#marketplace'
+claude plugin install labledger@labledger
+```
+
+Start a fresh session in your research repository and invoke `/labledger:init`.
+Discuss your goals with the agent; it creates the requests and initializes the
+repository. Verify all ten skills are discoverable. LabLedger does not replace
+Claude Code's native `/init`.
+
+To update inside a session:
+
+```text
+/plugin marketplace update labledger
+/plugin update labledger@labledger
+```
+
+Start a new session after updating. See Claude Code's
+[marketplace guide](https://code.claude.com/docs/en/plugin-marketplaces) and
+[plugin commands](https://code.claude.com/docs/en/plugins/cli-reference).
+
+## Releases and ZIP downloads
+
+The `marketplace` branch contains generated, ready-to-install packages. The release
+workflow updates it for each stable release. Maintainers should follow the
+[release guide](RELEASING.md) to publish a new version.
+
+You can also download `labledger-codex-<version>.zip` or
+`labledger-claude-<version>.zip` from
+[GitHub Releases](https://github.com/anhnh2002/LabLedger/releases). Release assets
+include `SHA256SUMS`. Extract the appropriate ZIP into a dedicated directory and
+load it through your host's local plugin controls. Keep the extracted directory;
+its backend and resources are required at runtime.
+
+This repository marketplace provides remote installation directly from GitHub.
+Listing in a host's public plugin directory is a separate submission process.
+
+## Contributor setup and local testing
+
+From a source checkout:
+
+```sh
+uv sync
+uv run python scripts/build_plugins.py
+```
+
+Generated directories and ZIP archives are under `dist/plugins/`. They can be moved
+or extracted elsewhere; resources resolve relative to the plugin root.
+
+For Claude Code local development:
 
 ```sh
 claude plugin validate dist/plugins/labledger-claude
 claude --plugin-dir ./dist/plugins/labledger-claude
 ```
 
-Inside the session, invoke `/labledger:init` and discuss your research goals.
-The agent creates the JSON and initializes the repository. Verify the remaining
-skills are discoverable. Do not replace the host's native `/init`.
+To build the same catalogs and packages used for remote installation:
 
-For team distribution, use a Claude Code marketplace. Follow the official
-[plugin documentation](https://code.claude.com/docs/en/plugins). Only the manifest
-belongs inside `.claude-plugin/`; skills, resources, runtime, and helpers remain
-at the package root. Validate on the exact host version being released.
+```sh
+uv run python scripts/build_marketplace.py
+```
 
-## Codex
+Register the generated marketplace locally with your host:
 
-Add `dist/plugins/labledger-codex` to a local/repository marketplace through Codex's
-plugin installation controls. The folder contains a portable root manifest,
-compatibility manifest, skills, resources, and the bundled backend.
+```sh
+codex plugin marketplace add ./dist/marketplace
+codex plugin add labledger@labledger
+```
 
-In a fresh session in your research repository, select the LabLedger init skill
-(`$labledger-init` where supported) and discuss your goals. Verify skill discovery
-on the Codex surface in use; plugin skills may be shown with the plugin namespace.
+or:
 
-Follow [OpenAI packaging documentation](https://developers.openai.com/plugins/build/plugins)
-and [skill discovery documentation](https://learn.chatgpt.com/docs/build-skills).
-Plugin installation and native planning controls vary by surface. An installed
-host executable does not establish that an interactive workflow was tested.
+```sh
+claude plugin validate dist/marketplace
+claude plugin marketplace add ./dist/marketplace
+claude plugin install labledger@labledger
+```
+
+Use an isolated host configuration when testing, or remove an existing LabLedger
+marketplace before switching sources: the local and remote catalogs share the name
+`labledger`. Only the appropriate manifest belongs in `.claude-plugin/` or
+`.codex-plugin/`; skills, resources, runtime, and helpers stay at the plugin root.
 
 ## Optional reminder hooks
 
-Developers can build separate variants with `uv run python scripts/build_plugins.py --hooks`.
-Default packages have no hooks. Never install default and hook variants together
-under the same plugin identity. Review/trust hooks through the host's controls.
+The remote marketplace and default release ZIPs contain no hooks. Developers can
+build separate local variants:
 
-Hooks read bounded reminders from an already prepared bundled runtime. With no
-runtime, invalid input, or no ledger, they exit harmlessly. They never install
-dependencies, change phases, approve work, run experiments, or block host tools.
-Set adapters.hooks to disabled in project configuration to suppress reminders.
+```sh
+uv run python scripts/build_plugins.py --hooks
+```
 
-Codex hook support must be verified for the installed surface; OpenAI documents
-hooks for manually installed desktop plugins. See [OpenAI hooks packaging](https://developers.openai.com/plugins/build/plugins)
-and [Claude hooks reference](https://code.claude.com/docs/en/hooks).
-All core workflows must also work with hooks absent. Public publication, publisher
-identity, licensing, and marketplace submission remain separate release actions.
+Never install default and hook variants together under the same plugin identity.
+Review and trust hooks through the host's controls. Hooks read bounded reminders
+from an already prepared runtime. With no runtime, invalid input, or no ledger,
+they exit harmlessly. They never install dependencies, change phases, approve work,
+run experiments, or block host tools. Set `adapters.hooks` to `disabled` in project
+configuration to suppress reminders.
+
+Codex hook support must be verified for the installed surface. See
+[OpenAI hooks packaging](https://developers.openai.com/plugins/build/plugins) and
+the [Claude hooks reference](https://code.claude.com/docs/en/hooks). All workflows
+also work with hooks absent. Installing a plugin does not establish that an
+interactive research workflow has been tested.

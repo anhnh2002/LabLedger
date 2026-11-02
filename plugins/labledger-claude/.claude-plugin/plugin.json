@@ -1,0 +1,10 @@
+{
+  "name": "labledger",
+  "version": "0.1.0",
+  "description": "Discuss research decisions, retain evidence, and continue across coding-agent sessions.",
+  "author": {
+    "name": "LabLedger contributors"
+  },
+  "homepage": "https://github.com/anhnh2002/LabLedger",
+  "repository": "https://github.com/anhnh2002/LabLedger"
+}

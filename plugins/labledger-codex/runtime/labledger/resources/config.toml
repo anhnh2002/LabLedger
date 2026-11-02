@@ -1,0 +1,36 @@
+schema_version = 1
+
+[project]
+name = "PROJECT_NAME"
+research_dir = "research"
+artifacts_dir = "artifacts/runs"
+
+[workflow]
+discuss_research_decisions = true
+fresh_session_after_brainstorm = true
+use_native_plan_mode = true
+persist_approved_plan_on_execution = true
+
+[memory]
+recall_before_new_approach = true
+default_visibility = "development"
+exclude_restricted_evaluation = true
+
+[experiments]
+require_protocol = true
+require_approved_scope = true
+capture_stdout = true
+capture_stderr = true
+capture_git_metadata = true
+capture_config_snapshot = true
+capture_all_environment_variables = false
+
+[storage]
+atomic_writes = true
+preserve_history = true
+raw_artifacts_in_git = false
+
+[adapters]
+codex = true
+claude_code = true
+hooks = "optional"

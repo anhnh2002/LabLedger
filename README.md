@@ -2,6 +2,8 @@
 
 **Durable research workflows and experiment records for Codex and Claude Code.**
 
+[![Latest release](https://img.shields.io/github/v/release/anhnh2002/LabLedger)](https://github.com/anhnh2002/LabLedger/releases/latest)
+
 LabLedger helps you and your coding agent discuss research decisions, run traceable
 experiments, and retain evidence across sessions. It keeps goals, plans, attempts,
 and findings in your repository so the next session can continue from recorded
@@ -80,6 +82,10 @@ codex plugin add labledger@labledger
 Start a fresh host session after installation. Both hosts download a ready-to-use
 plugin from the `marketplace` branch, including the backend and all ten workflows.
 The agent prepares Python dependencies on first use.
+
+Remote installation has been verified with Codex CLI 0.166.0 and Claude Code
+2.1.296 on macOS. See the [validation results](docs/VALIDATION.md) for the tested
+scope.
 
 Versioned plugin ZIPs and checksums are also available from
 [GitHub Releases](https://github.com/anhnh2002/LabLedger/releases/latest).

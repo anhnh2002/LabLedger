@@ -15,8 +15,8 @@ Contributors work on the source branch. Do not edit generated release files on
 4. Create and push a stable version tag matching both package versions:
 
    ```sh
-   git tag -a v0.1.0 -m 'LabLedger 0.1.0'
-   git push origin v0.1.0
+   git tag -a v0.1.1 -m 'LabLedger 0.1.1'
+   git push origin v0.1.1
    ```
 
 The tag push starts **release plugins** in GitHub Actions. For recovery, run that

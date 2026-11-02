@@ -115,7 +115,28 @@ plugin behavior. The results below distinguish backend checks from interactive h
 - The release workflow's branch publishing shell step passed against a temporary
   local Git remote: first branch creation, an unchanged rerun, and an update that
   preserved branch history. A clone retained both hidden marketplace catalogs.
-- GitHub publication, Actions permissions, installation from the published GitHub
-  branch, and interactive research conversations remain unobserved. The first
-  stable release must create `marketplace` before the documented remote commands
-  can succeed. See [RELEASING.md](RELEASING.md).
+- At this preparation stage, GitHub publication, Actions permissions, installation
+  from GitHub, and interactive research conversations had not been observed.
+
+## Published release verification — 2026-11-02
+
+- [v0.1.0](https://github.com/anhnh2002/LabLedger/releases/tag/v0.1.0) was published
+  by the [release workflow](https://github.com/anhnh2002/LabLedger/actions/runs/41449012872).
+  The workflow created `marketplace` and uploaded both default ZIPs and `SHA256SUMS`.
+- [CI checks](https://github.com/anhnh2002/LabLedger/actions/runs/41449012843) passed
+  on macOS and Linux with Python 3.11 and 3.14, including tests, lint, formatting,
+  source/wheel builds, plugin builds, and the relocated runtime smoke checks.
+- Codex CLI 0.166.0 fetched `anhnh2002/LabLedger --ref marketplace`, installed
+  `labledger@labledger` at version 0.1.0, and listed it as enabled.
+- Claude Code 2.1.296 fetched `anhnh2002/LabLedger#marketplace` over HTTPS and
+  installed `labledger@labledger` at version 0.1.0. Its component inventory listed
+  all ten skills and zero hooks.
+- Both remote installations used temporary host configurations on macOS. Each
+  installed cache contained all ten skills, the private helper, and the backend.
+  Existing user configurations were unchanged, and no local source build was used
+  to install either plugin.
+- Both ZIPs were downloaded from the published GitHub Release and matched its
+  `SHA256SUMS`. Each downloaded archive passed the full relocated backend smoke
+  check, including cancellation and cross-package resume.
+- Interactive research conversations, native mode transitions, and host-to-host
+  research handoffs remain outside this installation verification.
